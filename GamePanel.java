@@ -1,9 +1,9 @@
 import javax.swing.*;
-import javax.swing.text.StyledEditorKit.FontFamilyAction;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Random;
-
+import java.util.ArrayList;
+import java.util.Queue;
 
 public class GamePanel extends JPanel implements ActionListener {
     final int SCREEN_WIDTH = 900;
@@ -13,12 +13,14 @@ public class GamePanel extends JPanel implements ActionListener {
     final int DELAY = 75;
     boolean running = false;
     char moveState = ' ';
-    char[] inputQueue;
+    ArrayList<Character> inputQueue;
 
     // snake stuff
     int[] snakeBodyRow;
     int[] snakeBodyCol;
     int snakeLength = 1;
+    int colVelocity = 0;
+    int rowVelocity = 0;
 
     // fruit location
     int fruitRow;
@@ -31,6 +33,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
     public GamePanel() {
         rand = new Random();
+        inputQueue = new ArrayList<>();
 
         // initializes the panel
         this.setPreferredSize(new Dimension(this.SCREEN_WIDTH, this.SCREEN_HEIGHT));
@@ -71,6 +74,7 @@ public class GamePanel extends JPanel implements ActionListener {
             checkGameOver();
             eatApple();
         }
+        nextMoveInQueue();
         repaint();
     }
 
@@ -91,16 +95,9 @@ public class GamePanel extends JPanel implements ActionListener {
             this.snakeBodyCol[i] = this.snakeBodyCol[i - 1];
             this.snakeBodyRow[i] = this.snakeBodyRow[i - 1];
         }
-
-        if (this.moveState == 'U') {
-            this.snakeBodyCol[0]--;
-        } else if (this.moveState == 'D') {
-            this.snakeBodyCol[0]++;
-        } else if (this.moveState == 'L') {
-            this.snakeBodyRow[0]--;
-        } else if (this.moveState == 'R') {
-            this.snakeBodyRow[0]++;
-        }
+        this.snakeBodyCol[0]+= colVelocity;
+        this.snakeBodyRow[0]+= rowVelocity;
+        
     }
 
     public void eatApple() {
@@ -173,25 +170,39 @@ public class GamePanel extends JPanel implements ActionListener {
         return new int[] { row, col };
     }
 
-    public void updateMove(char move) {
+    public void nextMoveInQueue() {
+        if(inputQueue.isEmpty()) return;
+
+        char move = inputQueue.get(0);
+        inputQueue.remove(0);
         if (running == false && move == ' ') {
             restartGame();
         }
 
-        if (move == 'w' && moveState != 'D') {
-            moveState = 'U';
-        } else if (move == 's' && moveState != 'U') {
-            moveState = 'D';
-        } else if (move == 'a' && moveState != 'R') {
-            moveState = 'L';
-        } else if (move == 'd' && moveState != 'L') {
-            moveState = 'R';
+        if (move == 'w' && moveState != 's') {
+            colVelocity = -1;
+            rowVelocity = 0;
+            moveState = 'w';
+        } else if (move == 's' && moveState != 'w') {
+            rowVelocity = 0;
+            colVelocity = 1;
+            moveState = 's';
+        } else if (move == 'a' && moveState != 'd') {
+            rowVelocity = -1;
+            colVelocity = 0;
+            moveState = 'a';
+        } else if (move == 'd' && moveState != 'a') {
+            colVelocity = 0;
+            rowVelocity = 1;
+            moveState = 'd';
         }
     }
 
     class EventListener extends KeyAdapter {
         public void keyPressed(KeyEvent e) {
-            updateMove(e.getKeyChar());
+            if(moveState != e.getKeyCode()){
+                inputQueue.add(e.getKeyChar());
+            }
         }
     }
 }
